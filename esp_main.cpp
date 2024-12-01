@@ -17,7 +17,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600, 60000); // Offset for Tha
 const int maxRetries = 20;
 #include <Arduino.h>
 #include <BlynkSimpleEsp32.h>
-
+#include <cmath>
 double Humidity = 0.0;
 double Temperature = 0.0;
 double PM25 = 0.0;
@@ -25,7 +25,7 @@ double PM10 = 0.0;
 double Light = 0.0;
 double Sound = 0.0;
 double Carbon = 0.0;
-int Quality = 0;
+int Outlier = 0;
 
 int last1 = 0;
 int last1buf = 0;
@@ -133,12 +133,26 @@ double value = 0.0;
 std::map<int, std::pair<String, String>> map_int_toString = {
     {0, {"Humidity", "%"}},
     {1, {"Temp", "C"}},
-    {2, {"PM25", "PM"}},
-    {3, {"PM10", "PM"}},
-    {4, {"Light", "L"}},
-    {5, {"Sound", "S"}},
-    {6, {"Carbon", "C"}},
+    {2, {"PM25", "ppm"}},
+    {3, {"PM10", "ppm"}},
+    {4, {"Light", "lx"}},
+    {5, {"Sound", ""}},
+    {6, {"Carbon", "ppm"}},
 };
+
+void rule_base_ai(double temp) {
+    double mean = 32.67;
+    double std = 14.71; 
+    double n = 10.0;
+    // Calculate z-score
+    double z_score = (temp - mean) / (std / sqrt(n));
+    if (abs(z_score) >= 2.576) {
+        Outlier = 1; // If probability is below 0.01, it's considered an outlier
+    } else {
+        Outlier = 0; // Otherwise, it's not an outlier
+    }
+}
+
 
 const char DEGREE_SYMBOL = (char)223; 
 void updateLCDRow1(int map, double value)
@@ -150,10 +164,14 @@ void updateLCDRow1(int map, double value)
     lcd.print(":");
     lcd.print(value);
     if (map_int_toString[map].first == "Temp")
-    {
+    { 
+      rule_base_ai(value);
       lcd.print(DEGREE_SYMBOL);
     }
     lcd.print(map_int_toString[map].second);
+    if (Outlier == 1 & map_int_toString[map].first == "Temp") {
+      lcd.print(" *");
+    }
   }
 }
 
@@ -167,7 +185,7 @@ int int_Value = 0;
 void loop()
 {
   // Blynk.run();
-  timer.run();
+  // timer.run();
   currentMillis = millis();
   
   if (currentMillis - lastTimeUpdate >= timeUpdateInterval)
@@ -206,7 +224,7 @@ void loop()
     Send_Data_URL = Send_Data_URL + "&light=" + String(Light);
     Send_Data_URL = Send_Data_URL + "&sound=" + String(Sound);
     Send_Data_URL = Send_Data_URL + "&carbon=" + String(Carbon);
-    Send_Data_URL = Send_Data_URL + "&quality=" + String(Quality);
+    Send_Data_URL = Send_Data_URL + "&outlier=" + String(Outlier);
 
     // Initialize HTTPClient as "http".
     HTTPClient http;
