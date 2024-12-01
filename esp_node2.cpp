@@ -31,30 +31,12 @@ void serverTick() {
   unsigned long a = analogRead(AUDIOPIN);
   unsigned long c = analogRead(CARBONPIN);
 
-  //form analog to Lux light
-  float Vread = (l * 0.0048828125);
-  float RLDR = (10000.0 * (5 - Vread))/Vread;                    
-  l = (500.0 / RLDR);
-  ///
-
-  //from analog to ppm carbon
-  float slope = -0.7516072988;
-  float A = 45.87510694;
-  float Rseries = 1000;
-  float V_Rseries = ((float)c*5)/1023;
-  float Rs = ((5-V_Rseries)/V_Rseries)*Rseries;
-  float R0 = 400;
-  float Y = Rs/R0;
-  float c_out = pow(10,(log10(Y/A)/slope));
-  ///
-  /// ถ้าพังลบสองก้อนนี้เอานะ555
-
-  Serial.printf("Light %d | Sound %d | Carbon %d", l, a, c_out);
+  Serial.printf("Light %d | Sound %d | Carbon %d", l, a, c);
   Serial.println();
   samples++;
   totallight += l;
   totalaudio += a;
-  totalcarbon += c_out;
+  totalcarbon += c;
   if (samples >= 10) {
     float datalight = totallight / float(samples);
     float dataaudio = totalaudio / float(samples);
