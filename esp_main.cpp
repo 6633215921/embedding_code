@@ -2,27 +2,15 @@
 #define BLYNK_TEMPLATE_ID "TMPL6vDy3JGgi"
 #define BLYNK_TEMPLATE_NAME "ESP32 Main"
 #define BLYNK_AUTH_TOKEN "hWv5ybBN5tI8L9qmAuemgcieHK8yNsas"
-#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <NTPClient.h>
 #include <HTTPClient.h>
 #include <WiFiUdp.h>
 #include <map>
-#include <Keypad.h>
 String Web_App_URL = "https://script.google.com/macros/s/AKfycbyOwknxHK9e47ERILi6CA0gT0_ctp3e8lwaZAdBD6ht7DvBNV_qEiPRpvS-bJUZHquP/exec";
-const byte ROW_NUM = 4;
-const byte COL_NUM = 4;
-char keys[ROW_NUM][COL_NUM] = {
-    {'1', '2', '3', 'U'},
-    {'4', '5', '6', 'D'},
-    {'7', '8', '9', 'C'},
-    {'L', '0', 'R', 'E'}};
-byte pin_rows[ROW_NUM] = {32, 33, 25, 26}; // Row pins (D26, D25, D33, D32)
-byte pin_cols[COL_NUM] = {13, 12, 14, 27}; // Column pins (D13, D12, D14, D27)
-Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_cols, ROW_NUM, COL_NUM);
-const char *ssid = "Your WIFI Name";
-const char *password = "Your WIFI PASSWORD";
+const char *ssid = "GalaxyWarich";
+const char *password = "Warich2264";
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600, 60000); // Offset for Thailand (GMT+7)
@@ -44,45 +32,40 @@ int last1buf = 0;
 int last2 = 0;
 int last2buf = 0;
 
-// BlynkTimer timer;
+BlynkTimer timer;
 // void serverTick();
 
+int retryCount = 0;
 void setup()
 {
   Serial.begin(115200);
   // Blynk.begin(BLYNK_AUTH_TOKEN, "Rb-i", "frxsne5vz837k");
   // timer.setInterval(10000L, serverTick);
-
-  lcd.begin(16, 2);
+  lcd.begin();
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("Connecting WiFi");
   WiFi.begin(ssid, password);
-  int retryCount = 0;
-  while (WiFi.status() != WL_CONNECTED && retryCount < maxRetries)
-  {
+  retryCount = 0;
+  while (WiFi.status() != WL_CONNECTED && retryCount < maxRetries) {
     delay(500);
     lcd.setCursor(0, 1);
     lcd.print("Retry: ");
     lcd.print(++retryCount);
   }
   lcd.clear();
-  if (WiFi.status() == WL_CONNECTED)
-  {
+  if (WiFi.status() == WL_CONNECTED) {
     lcd.setCursor(0, 0);
     lcd.print("WiFi Connected!");
     lcd.setCursor(0, 1);
     lcd.print(WiFi.localIP());
-    delay(2000);
-  }
-  else
-  {
+    delay(1000);
+  } else {
     lcd.setCursor(0, 0);
     lcd.print("WiFi Failed!");
     lcd.setCursor(0, 1);
     lcd.print("Restart device");
-    while (true)
-      ;
+    while (true);
   }
   timeClient.begin();
   lcd.clear();
@@ -145,120 +128,96 @@ BLYNK_WRITE(V12)
   last2buf = raw_data[3];
 }
 
-char buffer_key = '1';
-double value = 0;
+double value = 0.0;
 
-std::map<char, std::pair<String, String>> map_int_toString = {
-    {'1', {"Humidity", "%"}},
-    {'2', {"Temp", "C"}},
-    {'3', {"PM25", "PM"}},
-    {'4', {"PM10", "PM"}},
-    {'5', {"Light", "L"}},
-    {'6', {"Sound", "S"}},
-    {'7', {"Carbon", "C"}},
+std::map<int, std::pair<String, String>> map_int_toString = {
+    {0, {"Humidity", "%"}},
+    {1, {"Temp", "C"}},
+    {2, {"PM25", "PM"}},
+    {3, {"PM10", "PM"}},
+    {4, {"Light", "L"}},
+    {5, {"Sound", "S"}},
+    {6, {"Carbon", "C"}},
 };
 
-void updateLCDRow1(char map, double value)
+const char DEGREE_SYMBOL = (char)223; 
+void updateLCDRow1(int map, double value)
 {
   if (map_int_toString.find(map) != map_int_toString.end())
-  {                      // Check if key exists in map
+  {
     lcd.setCursor(0, 1); // Set cursor for the second row (line 1)
     lcd.print(map_int_toString[map].first);
     lcd.print(":");
     lcd.print(value);
     if (map_int_toString[map].first == "Temp")
     {
-      lcd.print((char)223);
+      lcd.print(DEGREE_SYMBOL);
     }
     lcd.print(map_int_toString[map].second);
   }
-  else
-  {
-    lcd.setCursor(0, 1);
-    lcd.print("Invalid key"); // Handle invalid key press
-  }
 }
 
-const unsigned long debounceDelay = 50;        // Debounce delay in milliseconds
-unsigned long lastPressTime = 0;               // Store the time of the last key press
 unsigned long lastTimeUpdate = 0;              // Time when the time was last updated
+unsigned long lastGoogleUpdate = 0;  
 const unsigned long timeUpdateInterval = 1000; // Update time every 1 second
+const unsigned long googleSheetInterval = 10000; // Update Google Sheets every 10 seconds
+unsigned long currentMillis = 0;
+int int_Value = 0;
 
 void loop()
 {
   // Blynk.run();
-  // timer.run();
-
-  unsigned long currentMillis = millis();
-  char key = keypad.getKey();
-  if (key)
-  {
-    if (currentMillis - lastPressTime > debounceDelay)
-    {
-      buffer_key = key;
-      lastPressTime = currentMillis;
-    }
-  }
-
+  timer.run();
+  currentMillis = millis();
+  
   if (currentMillis - lastTimeUpdate >= timeUpdateInterval)
   {
     lcd.clear();
-
-    // update LCD Row0
+    // Update time
     timeClient.update();
     String currentTime = timeClient.getFormattedTime(); // Format: HH:MM:SS
     lcd.setCursor(0, 0);
     lcd.print("Time: ");
     lcd.print(currentTime);
-
-    // update LCD Row1
+    // Update sensor value on LCD Row1
     std::vector<double> sensorValues = {Humidity, Temperature, PM25, PM10, Light, Sound, Carbon};
-    int int_Value = buffer_key - '0'; // Convert char to int ('1' -> 1, '2' -> 2, etc.)
-    // Check if the key is valid (1-7)
-    if (int_Value >= 1 && int_Value <= 7)
-    {
-      double value = sensorValues[int_Value - 1]; // Get the corresponding sensor value
-      updateLCDRow1(buffer_key, value);           // Update LCD with the value
-    }
-
-    //----------------------------------------Conditions that are executed when WiFi is connected.
-    // This condition is the condition for sending or writing data to Google Sheets.
-    if (WiFi.status() == WL_CONNECTED)
-    {
-      // Create a URL for sending or writing data to Google Sheets.
-      String Send_Data_URL = Web_App_URL + "?sts=write";
-      Send_Data_URL = Send_Data_URL + "&humd=" + String(Humidity);
-      Send_Data_URL = Send_Data_URL + "&temp=" + String(Temperature);
-      Send_Data_URL = Send_Data_URL + "&pm25=" + String(PM25);
-      Send_Data_URL = Send_Data_URL + "&pm10=" + String(PM10);
-      Send_Data_URL = Send_Data_URL + "&light=" + String(Light);
-      Send_Data_URL = Send_Data_URL + "&sound=" + String(Sound);
-      Send_Data_URL = Send_Data_URL + "&carbon=" + String(Carbon);
-      Send_Data_URL = Send_Data_URL + "&quality=" + String(Quality);
-
-      // Initialize HTTPClient as "http".
-      HTTPClient http;
-
-      // HTTP GET Request.
-      http.begin(Send_Data_URL.c_str());
-      http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-
-      // Gets the HTTP status code.
-      int httpCode = http.GET();
-      Serial.print("HTTP Status Code : ");
-      Serial.println(httpCode);
-
-      // Getting response from google sheets.
-      String payload;
-      if (httpCode > 0)
-      {
-        payload = http.getString();
-        Serial.println("Payload : " + payload);
-      }
-
-      http.end();
-    }
-
+    int_Value = (int_Value+1)%sensorValues.size();
+    value = sensorValues[int_Value];
+    updateLCDRow1(int_Value, value);
     lastTimeUpdate = currentMillis;
+  }
+
+  if (currentMillis - lastGoogleUpdate >= googleSheetInterval && WiFi.status() == WL_CONNECTED)
+  {
+    timeClient.update();
+    String currentTime = timeClient.getFormattedTime(); // Format: HH:MM:SS
+    lcd.setCursor(0, 0);
+    lcd.print("Time: ");
+    lcd.print(currentTime);
+    lcd.print(" *");
+    int_Value = 0;
+
+    // Create a URL for sending or writing data to Google Sheets.
+    String Send_Data_URL = Web_App_URL + "?sts=write";
+    Send_Data_URL = Send_Data_URL + "&humd=" + String(Humidity);
+    Send_Data_URL = Send_Data_URL + "&temp=" + String(Temperature);
+    Send_Data_URL = Send_Data_URL + "&pm25=" + String(PM25);
+    Send_Data_URL = Send_Data_URL + "&pm10=" + String(PM10);
+    Send_Data_URL = Send_Data_URL + "&light=" + String(Light);
+    Send_Data_URL = Send_Data_URL + "&sound=" + String(Sound);
+    Send_Data_URL = Send_Data_URL + "&carbon=" + String(Carbon);
+    Send_Data_URL = Send_Data_URL + "&quality=" + String(Quality);
+
+    // Initialize HTTPClient as "http".
+    HTTPClient http;
+
+    // HTTP GET Request.
+    http.begin(Send_Data_URL.c_str());
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+    // Gets the HTTP status code.
+    int httpCode = http.GET();
+    http.end();
+    lastGoogleUpdate = currentMillis;
   }
 }
