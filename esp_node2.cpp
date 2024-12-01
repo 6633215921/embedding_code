@@ -4,7 +4,7 @@
 #define BLYNK_AUTH_TOKEN       "bpDk7dflq_0u-V5HZuTOmtUfn28LjSIb"
 
 #include <Arduino.h>
-#include <BlynkSimpleESP32.h>
+#include <BlynkSimpleEsp32.h>
 
 #define LIGHTPIN 33
 #define AUDIOPIN 34
@@ -42,19 +42,19 @@ void serverTick() {
   float A = 45.87510694;
   float Rseries = 1000;
   float V_Rseries = ((float)c*5)/1023;
-  Rs = ((5-V_Rseries)/V_Rseries)*Rseries;
+  float Rs = ((5-V_Rseries)/V_Rseries)*Rseries;
   float R0 = 400;
   float Y = Rs/R0;
-  float c = pow(10,(log10(Y/A)/slope));
+  float c_out = pow(10,(log10(Y/A)/slope));
   ///
   /// ถ้าพังลบสองก้อนนี้เอานะ555
 
-  Serial.printf("Light %d | Sound %d | Carbon %d", l, a, c);
+  Serial.printf("Light %d | Sound %d | Carbon %d", l, a, c_out);
   Serial.println();
   samples++;
   totallight += l;
   totalaudio += a;
-  totalcarbon += c;
+  totalcarbon += c_out;
   if (samples >= 10) {
     float datalight = totallight / float(samples);
     float dataaudio = totalaudio / float(samples);
