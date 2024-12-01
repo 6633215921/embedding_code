@@ -135,9 +135,9 @@ std::map<int, std::pair<String, String>> map_int_toString = {
     {1, {"Temp", "C"}},
     {2, {"PM25", "ppm"}},
     {3, {"PM10", "ppm"}},
-    {4, {"Light", "lx"}},
+    {4, {"Light", ""}},
     {5, {"Sound", ""}},
-    {6, {"Carbon", "ppm"}},
+    {6, {"Carbon", ""}},
 };
 
 void rule_base_ai(double temp) {
