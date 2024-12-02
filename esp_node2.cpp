@@ -53,6 +53,8 @@ void serverTick() {
     float Y = Rs/R0;
     datacarbon = pow(10,(log10(Y/A)/slope))*3;
     //
+    datalight = datalight/10;
+    dataaudio = dataaudio/10;
 
     Blynk.virtualWrite(V0, datalight);
     Blynk.virtualWrite(V1, dataaudio);
