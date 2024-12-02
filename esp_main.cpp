@@ -33,14 +33,14 @@ int last2 = 0;
 int last2buf = 0;
 
 BlynkTimer timer;
-// void serverTick();
+void serverTick();
 
 int retryCount = 0;
 void setup()
 {
   Serial.begin(115200);
-  // Blynk.begin(BLYNK_AUTH_TOKEN, "Rb-i", "frxsne5vz837k");
-  // timer.setInterval(10000L, serverTick);
+  Blynk.begin(BLYNK_AUTH_TOKEN, "Rb-i", "frxsne5vz837k");
+  timer.setInterval(10000L, serverTick);
   lcd.begin();
   lcd.backlight();
   lcd.setCursor(0, 0);
@@ -71,10 +71,10 @@ void setup()
   lcd.clear();
 }
 
-// void serverTick()
-// {
-//   Blynk.syncVirtual(V11, V12);
-// }
+void serverTick()
+{
+  Blynk.syncVirtual(V11, V12);
+}
 
 BLYNK_WRITE(V11)
 {
@@ -135,9 +135,9 @@ std::map<int, std::pair<String, String>> map_int_toString = {
     {1, {"Temp", "C"}},
     {2, {"PM25", "ppm"}},
     {3, {"PM10", "ppm"}},
-    {4, {"Light", ""}},
-    {5, {"Sound", ""}},
-    {6, {"Carbon", ""}},
+    {4, {"Light", "lx"}},
+    {5, {"Sound", "dB"}},
+    {6, {"Carbon", "ppm"}},
 };
 
 void rule_base_ai(double temp) {
@@ -184,8 +184,8 @@ int int_Value = 0;
 
 void loop()
 {
-  // Blynk.run();
-  // timer.run();
+  Blynk.run();
+  timer.run();
   currentMillis = millis();
   
   if (currentMillis - lastTimeUpdate >= timeUpdateInterval)
