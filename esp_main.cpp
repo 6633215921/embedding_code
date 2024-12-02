@@ -133,11 +133,11 @@ double value = 0.0;
 std::map<int, std::pair<String, String>> map_int_toString = {
     {0, {"Humidity", "%"}},
     {1, {"Temp", "C"}},
-    {2, {"PM25", ""}},
-    {3, {"PM10", ""}},
+    {2, {"PM25", "ppm"}},
+    {3, {"PM10", "ppm"}},
     {4, {"Light", ""}},
     {5, {"Sound", ""}},
-    {6, {"Carbon", ""}},
+    {6, {"Carbon", "ppm"}},
 };
 
 void rule_base_ai(double temp) {
