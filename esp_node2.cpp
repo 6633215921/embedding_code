@@ -42,6 +42,18 @@ void serverTick() {
     float dataaudio = totalaudio / float(samples);
     float datacarbon = totalcarbon / float(samples);
 
+    //MQ-7
+    datacarbon = datacarbon/10;
+    float slope = -0.7516072988;
+    float A = 45.87510694;
+    float Rseries = 1000;
+    float V_Rseries = (datacarbon*5)/1023;
+    float Rs = ((5-V_Rseries)/V_Rseries)*Rseries;
+    float R0 = 400;
+    float Y = Rs/R0;
+    datacarbon = pow(10,(log10(Y/A)/slope))*3;
+    //
+
     Blynk.virtualWrite(V0, datalight);
     Blynk.virtualWrite(V1, dataaudio);
     Blynk.virtualWrite(V2, datacarbon);
