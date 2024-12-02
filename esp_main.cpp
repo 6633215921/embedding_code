@@ -133,7 +133,7 @@ double value = 0.0;
 std::map<int, std::pair<String, String>> map_int_toString = {
     {0, {"Humidity", "%"}},
     {1, {"Temp", "C"}},
-    {2, {"PM25", "ppm"}},
+    {2, {"PM2.5", "ppm"}},
     {3, {"PM10", "ppm"}},
     {4, {"Light", "lx"}},
     {5, {"Sound", "dB"}},
